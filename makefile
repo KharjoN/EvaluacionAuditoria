@@ -1,7 +1,7 @@
 .PHONY: init install run
 
 init:
-	poetry add fastapi uvicorn SQLAlchemy pydantic python-dotenv
+	poetry add fastapi uvicorn SQLAlchemy pydantic python-dotenv asyncgp
 
 install:
 	poetry install --no-root
