@@ -51,7 +51,7 @@ class Personas(Base, AsyncAttrs):
     public_id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     nombre = Column(String,nullable = False,  index=True)
     apellido = Column(String,nullable = False, index=True)
-    id_religion = Column(Integer,nullable = False, index=True)
+    id_religion = Column(String, nullable=False)
     
 class Usuarios(Base, AsyncAttrs):
     __tablename__ = "usuarios"
@@ -75,13 +75,11 @@ class PersonasRead(BaseModel):
     rut_token: str
     nombre: str
     apellido: str
-    id_religion: int
 
 class PersonaUpdate(BaseModel):
     nombre: str
     apellido: str
     id_religion: int
-
 class UsuariosRead(BaseModel):
     id_usuario: int
     correo: str
@@ -115,6 +113,15 @@ app.add_middleware(
     allow_methods=["*"],           
     allow_headers=["*"],            
 )
+
+def _map_persona_to_read_model(persona: Personas) -> PersonasRead:
+    """Helper para convertir un modelo de DB Personas a un modelo Pydantic PersonasRead."""
+    return PersonasRead(
+        public_id=persona.public_id,
+        rut_token=create_rut_token(persona.rut),
+        nombre=persona.nombre,
+        apellido=persona.apellido,
+    )
 
 def create_rut_token(rut: str) -> str:
     """Creates a non-reversible, consistent token from a RUT for display purposes."""
@@ -151,12 +158,14 @@ async def get_current_user(
         raise credentials_exception
     
     try:
-        token_type, token = access_token.split()
-        if token_type.lower() != "bearer":
+        
+        parts = access_token.split()
+        if len(parts) != 2 or parts[0].lower() != "bearer":
             raise credentials_exception
-    except ValueError:
+        token = parts[1]
+    except Exception:
         raise credentials_exception
-
+        
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str | None = payload.get("sub")
@@ -207,7 +216,7 @@ async def login_for_access_token(
         value=f"Bearer {access_token}",
         httponly=True,
         samesite="none",  
-        secure=True   # Must be False for local HTTP development
+        secure=True   
     )
     return {"access_token": access_token, "token_type": "bearer"}
 
@@ -228,19 +237,14 @@ async def create_persona(
     if existing.scalar_one_or_none():
         raise HTTPException(status_code=400, detail="El RUT ya está registrado.")
 
-    nueva = Personas(rut=persona.rut, nombre=persona.nombre, apellido=persona.apellido, id_religion=persona.id_religion)
+   
+    hashed_religion = get_password_hash(str(persona.id_religion))
+    nueva = Personas(rut=persona.rut, nombre=persona.nombre, apellido=persona.apellido, id_religion=hashed_religion)
     session.add(nueva)
     await session.commit()
     await session.refresh(nueva)
 
-    # Return a secure, tokenized representation
-    return PersonasRead(
-        public_id=nueva.public_id,
-        rut_token=create_rut_token(nueva.rut),
-        nombre=nueva.nombre,
-        apellido=nueva.apellido,
-        id_religion=nueva.id_religion
-    )
+    return _map_persona_to_read_model(nueva)
 
 @app.get("/personas/", response_model=list[PersonasRead])
 async def read_persona(
@@ -251,16 +255,7 @@ async def read_persona(
     )
     personas_db = result.scalars().all()
     
-    # Build a list of secure, tokenized responses
-    response_list = [
-        PersonasRead(
-            public_id=p.public_id,
-            rut_token=create_rut_token(p.rut),
-            nombre=p.nombre,
-            apellido=p.apellido,
-            id_religion=p.id_religion
-        ) for p in personas_db
-    ]
+    response_list = [_map_persona_to_read_model(p) for p in personas_db]
     return response_list
 
 @app.get("/personas/{public_id}", response_model=PersonasRead)
@@ -275,13 +270,7 @@ async def read_single_persona(
     if persona is None:
         raise HTTPException(status_code=404, detail="Persona no encontrada")
     
-    return PersonasRead(
-        public_id=persona.public_id,
-        rut_token=create_rut_token(persona.rut),
-        nombre=persona.nombre,
-        apellido=persona.apellido,
-        id_religion=persona.id_religion
-    )
+    return _map_persona_to_read_model(persona)
 
 @app.put("/personas/{public_id}", response_model=PersonasRead)
 async def update_persona(
@@ -297,19 +286,15 @@ async def update_persona(
     if persona is None:
         raise HTTPException(status_code=404, detail="Persona no encontrada")
     
+   
+    hashed_religion = get_password_hash(str(persona_update.id_religion))
     persona.nombre = persona_update.nombre
     persona.apellido = persona_update.apellido
-    persona.id_religion = persona_update.id_religion 
+    persona.id_religion = hashed_religion
     
     await session.commit()
     await session.refresh(persona)
-    return PersonasRead(
-        public_id=persona.public_id,
-        rut_token=create_rut_token(persona.rut),
-        nombre=persona.nombre,
-        apellido=persona.apellido,
-        id_religion=persona.id_religion
-    )
+    return _map_persona_to_read_model(persona)
 
 @app.delete("/personas/{public_id}", status_code=204)
 async def delete_persona(
