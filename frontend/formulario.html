@@ -22,6 +22,8 @@
     <main>
         <!-- Aqui va el contenido principal -->
         <div id="contenedor-formulario" class="container justify-content-center bg-light rounded-5 mt-5">
+            <!-- Hidden field to store the public_id during an edit operation -->
+            <input type="hidden" id="edit-id">
             <form id="FormPersonas" class="p-3 bg-light rounded-3 shadow-lg rounded-5  ">
             <!--Campo RUT -->
             <div class="row mb-3">
@@ -109,6 +111,20 @@
     </main>
     <script>
 $(document).ready(function() {
+    
+    $.ajaxSetup({
+        xhrFields: {
+            withCredentials: true
+        }
+    });
+
+    $(document).ajaxError(function(event, jqXHR, ajaxSettings, thrownError) {
+        if (jqXHR.status === 401) { // 401 Unauthorized
+            alert("Tu sesión ha expirado. Por favor, inicia sesión de nuevo.");
+            window.location.href = 'login.html';
+        }
+    });
+
     $('#btnActualizar').hide();
 
        const religionMap = {
@@ -130,13 +146,13 @@ $(document).ready(function() {
                     const religionTexto = religionMap[persona.id_religion] || 'No especificada';
                     const tarjetaHtml = `
                         <div class="card m-2" style="width: 18rem;">
-                            <img src="https://picsum.photos/seed/${persona.rut}/300/200" class="card-img-top" alt="Imagen de persona">
+                            <img src="https://picsum.photos/seed/${persona.public_id}/300/200" class="card-img-top" alt="Imagen de persona">
                             <div class="card-body">
                                 <h5 class="card-title">${persona.nombre} ${persona.apellido}</h5>
-                                <p class="card-text mb-1"><strong>RUT:</strong> ${persona.rut}</p>
+                                <p class="card-text mb-1"><strong>Identificador:</strong> ${persona.rut_token}</p>
                                 <p class="card-text"><strong>Religión:</strong> ${religionTexto}</p>
-                                <button type="button" class="btn btn-primary btn-sm btn-editar" data-rut="${persona.rut}">Editar</button>
-                                <button type="button" class="btn btn-danger btn-sm btn-borrar" data-rut="${persona.rut}">Borrar</button>
+                                <button type="button" class="btn btn-primary btn-sm btn-editar" data-id="${persona.public_id}">Editar</button>
+                                <button type="button" class="btn btn-danger btn-sm btn-borrar" data-id="${persona.public_id}">Borrar</button>
                             </div>
                         </div>
                     `;
@@ -145,7 +161,9 @@ $(document).ready(function() {
             },
             error: function(error) {
                 console.error("Error al cargar personas:", error);
-                $('#contenedor-tarjetas').html('<p class="text-danger">No se pudieron cargar los registros.</p>');
+                if (error.status !== 401) {
+                    $('#contenedor-tarjetas').html('<p class="text-danger">No se pudieron cargar los registros. Revisa la consola para más detalles.</p>');
+                }
             }
         });
     }
@@ -174,14 +192,13 @@ $(document).ready(function() {
             data: JSON.stringify(personaData),
             success: function(response) {
                 console.log('Respuesta del servidor:', response);
-                alert('Persona guardada con éxito: ' + response.message);
+                alert('Persona guardada con éxito.');
                 $('#FormPersonas')[0].reset();
                 cargarPersonas();
             },
             error: function(jqXHR, textStatus, errorThrown) {
                 console.error('Error al guardar:', textStatus, errorThrown, jqXHR.responseJSON);
                 
-                // MEJORA: Mostrar el error específico de FastAPI.
                 let errorMessage = 'Error al guardar la persona. Revisa la consola.';
                 if (jqXHR.status === 422 && jqXHR.responseJSON && jqXHR.responseJSON.detail) {
                     // Error de validación de FastAPI
@@ -199,20 +216,15 @@ $(document).ready(function() {
     $('#btnActualizar').on('click', function() 
     {
 
-        const rut =$('#rut').val();
+        const publicId = $('#edit-id').val();
         const personaData = {
             nombre: $('#nombre').val(),
             apellido: $('#apellido').val(),
             id_religion: parseInt($('#religion').val(),10),
         };
 
-        if (!rut){
-            alert('RUT no puede estar vacío');
-            return;
-        }
-
         $.ajax({
-            url: `http://127.0.0.1:8000/personas/${rut}`,
+            url: `http://127.0.0.1:8000/personas/${publicId}`,
             type: 'PUT',
             contentType: 'application/json',
             data: JSON.stringify(personaData),
@@ -222,6 +234,7 @@ $(document).ready(function() {
                 cargarPersonas();
                 $('#btnActualizar').hide();
                 $('#btnGuardar').show();
+                $('#rut').prop('readonly', false);
             },
             error: function(jqXHR, textStatus, errorThrown){
                 console.error('Error al actualizar:', textStatus, errorThrown, jqXHR.responseJSON);
@@ -235,13 +248,14 @@ $(document).ready(function() {
 
     $('#contenedor-tarjetas').on('click', '.btn-editar', function() 
     {
-        const rut = $(this).data('rut');
+        const publicId = $(this).data('id');
 
         $.ajax({
-            url: `http://127.0.0.1:8000/personas/${rut}`,
+            url: `http://127.0.0.1:8000/personas/${publicId}`,
             type: 'GET',
             success: function(persona) {
-                $('#rut').val(persona.rut);
+                $('#edit-id').val(persona.public_id);
+                $('#rut').val(persona.rut_token); 
                 $('#nombre').val(persona.nombre);
                 $('#apellido').val(persona.apellido);
                 $('#religion').val(persona.id_religion);
@@ -262,8 +276,30 @@ $(document).ready(function() {
     
 });
 
+    $('#contenedor-tarjetas').on('click', '.btn-borrar', function() {
+        const publicId = $(this).data('id');
+
+        if (confirm('¿Estás seguro de que deseas eliminar esta persona?')) {
+            $.ajax({
+                url: `http://127.0.0.1:8000/personas/${publicId}`,
+                type: 'DELETE',
+                success: function(response) {
+                    alert('Persona eliminada con éxito');
+                
+                location.reload();
+                },
+                error: function(error) {
+                    console.error("Error al eliminar persona:", error);
+                    alert("No se pudo eliminar la persona.");
+                }
+            });
+        }
+    });
+
     $('button[type="reset"]').on('click', function() {
         $('#rut').prop('readonly', false);
+        $('#btnGuardar').show();
+        $('#btnActualizar').hide();
     });
 
     cargarPersonas(); 

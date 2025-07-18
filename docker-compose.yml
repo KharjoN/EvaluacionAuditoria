@@ -1,13 +1,39 @@
+version: '3.8'
+
 services:
   db:
     image: postgres:15
     environment:
-      POSTGRES_PASSWORD: password
-      POSTGRES_USER: postgres
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     ports:
-      - "5432:5432"
+      - "5432:5432" 
+    restart: unless-stopped
     volumes:
-      - db_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data/
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    depends_on:
+      - db
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      SECRET_KEY: ${SECRET_KEY}
+      TOKENIZATION_KEY: ${TOKENIZATION_KEY}
+    restart: unless-stopped
+  
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    ports:
+      - "5500:80"
+    restart: unless-stopped
 
 volumes:
-  db_data:
+  postgres_data:

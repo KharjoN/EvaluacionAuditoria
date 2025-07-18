@@ -14,35 +14,71 @@
             <div class="text-center">
                 <h1>Bienvenido al sistema</h1>
             </div>
-            <form class="p-3 bg-light rounded-3 shadow-lg rounded-5  ">
-            <!--Campo Usuario -->
-            <div class="row mb-3">
-                <label class="col-sm-2 col-form-label-lg" for="RUT" >
-                    Usuario
-                </label>
-                <div class="col-sm-10">
-                    <input type="text" class="form-control" id="RUT" placeholder="Ej: admin">
-                </div>
-                <!--Texto descripcion-->
-                <div type="text" class="form-text">
-                     Ingrese Usuario.
-                </div>
-            </div>
-            <!--Campo Contraseña -->
-            <div class="row mb-3">
-                <label class="col-sm-2 col-form-label-lg" for="RUT" >
-                    Usuario
-                </label>
-                <div class="col-sm-10">
-                    <input type="password" class="form-control" id="RUT" placeholder="Ej: password">
-                </div>
-                <!--Texto descripcion-->
-                <div type="text" class="form-text">
-                     Ingrese tu Contraseña.
-                </div>
+            <form id="loginForm" class="p-3 bg-light rounded-3 shadow-lg rounded-5">
+                <div id="error-message" class="alert alert-danger" style="display: none;"></div>
 
-                <button type="button" class="btn btn-success " >
-                    Entrar
-                </button>
+                <!--Campo Correo -->
+                <div class="row mb-3">
+                    <label class="col-sm-2 col-form-label-lg" for="email">
+                        Correo
+                    </label>
+                    <div class="col-sm-10">
+                        <input type="email" class="form-control" id="email" placeholder="Ej: correo@ejemplo.com" required>
+                    </div>
+                    <div class="form-text offset-sm-2">
+                        Ingrese su correo electrónico.
+                    </div>
+                </div>
+                <!--Campo Contraseña -->
+                <div class="row mb-3">
+                    <label class="col-sm-2 col-form-label-lg" for="password">
+                        Contraseña
+                    </label>
+                    <div class="col-sm-10">
+                        <input type="password" class="form-control" id="password" placeholder="Tu contraseña" required>
+                    </div>
+                    <div class="form-text offset-sm-2">
+                        Ingrese su contraseña.
+                    </div>
+                </div>
+                <div class="d-grid gap-2 col-6 mx-auto">
+                    <button type="submit" class="btn btn-success">
+                        Entrar
+                    </button>
+                </div>
             </div>
     </main>
+    <script>
+        $(document).ready(function() {
+            $('#loginForm').on('submit', function(event) {
+                event.preventDefault();
+
+            
+                const formData = new FormData();
+                formData.append('username', $('#email').val());
+                formData.append('password', $('#password').val());
+
+                $.ajax({
+                    url: 'http://127.0.0.1:8000/token', 
+                    type: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    xhrFields:{
+                        withCredentials: true,
+                    },
+                    success: function(response) {
+                        console.log('Respuesta del servidor:', response);
+                        window.location.href = 'formulario.html';
+                    },
+                    error: function(jqXHR) {
+                        // Muestra un error si el login falla
+                        const errorMessage = jqXHR.responseJSON ? jqXHR.responseJSON.detail : 'Correo o contraseña incorrectos.';
+                        $('#error-message').text(errorMessage).show();
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
