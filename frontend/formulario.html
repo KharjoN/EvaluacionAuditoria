@@ -21,15 +21,15 @@
 
     <main>
         <!-- Aqui va el contenido principal -->
-        <div class="container justify-content-center bg-light rounded-5 mt-5">
-            <form class="p-3 bg-light rounded-3 shadow-lg rounded-5  ">
+        <div id="contenedor-formulario" class="container justify-content-center bg-light rounded-5 mt-5">
+            <form id="FormPersonas" class="p-3 bg-light rounded-3 shadow-lg rounded-5  ">
             <!--Campo RUT -->
             <div class="row mb-3">
-                <label class="col-sm-2 col-form-label-lg" for="RUT" >
+                <label class="col-sm-2 col-form-label-lg" for="rut" >
                     RUT
                 </label>
                 <div class="col-sm-10">
-                    <input type="text" class="form-control" id="RUT" placeholder="Ej: 12345678-9">
+                    <input type="text" class="form-control" id="rut" placeholder="Ej: 12345678-9">
                 </div>
                 <!--Texto descripcion-->
                 <div type="text" class="form-text">
@@ -38,11 +38,11 @@
             </div>
             <!--Campo Nombre-->
             <div class="row mb-3">
-                <label class="col-sm-2 col-form-label-lg" for="Nombre" >
+                <label class="col-sm-2 col-form-label-lg" for="nombre" >
                     Nombre
                 </label>
                 <div class="col-sm-10">
-                    <input type="text" class="form-control" id="Nombre" placeholder="Ej: Juan">
+                    <input type="text" class="form-control" id="nombre" placeholder="Ej: Juan">
                 </div>
                 <!--Texto descripcion-->
                 <div type="text" class="form-text">
@@ -51,11 +51,11 @@
             </div>
             <!--Campo Apellido-->
             <div class="row mb-3">
-                <label class="col-sm-2 col-form-label-lg" for="RUT" >
+                <label class="col-sm-2 col-form-label-lg" for="apellido" >
                     Apellido
                 </label>
                 <div class="col-sm-10">
-                    <input type="text" class="form-control" id="RUT" placeholder="Ej: Perez">
+                    <input type="text" class="form-control" id="apellido" placeholder="Ej: Perez">
                 </div>
                 <!--Texto descripcion-->
                 <div type="text" class="form-text">
@@ -64,70 +64,215 @@
             </div>
             <!--CampoReligion-->
             <div class="row mb-3">
-                <label class="col-sm-2 col-form-label-lg" for="RUT" >
+                <label class="col-sm-2 col-form-label-lg" for="religion" >
                     Religion
                 </label>
                 <!--Lista seleccion-->
                 <div class="col-sm-10">
-                    <select class="form-select" aria-label="Religion">
-                        <option selected>Seleccione Religion</option>
+                    <select id="religion" class="form-select" aria-label="Religion">
+                        <option selected value="">Seleccione Religion</option>  <!-- Añadido value="" -->
                         <option value="1">Cristiano</option>
                         <option value="2">Católico</option>
                         <option value="3">Agnóstico</option>
                         <option value="4">Otro</option>
                     </select>
-    
-
-                </div>
+                    </div>
                 <!--Texto descripcion-->
                 <div type="text" class="form-text">
                      Selecciona tu Religion.
                 </div>
             </div>
-            </form>
 
             <!--Botones-->
             <div class="col-sm-10 justify-content-end m-1 p-2">
             <!--Boton Guardar-->
-                <button type="button" class="btn btn-success" >
+                <button type="submit" id="btnGuardar" class="btn btn-success" >
                     Guardar
              </button>
             <!--Boton Limpiar-->
-                <button type="button" class="btn btn-primary" >
+                <button type="reset" id="btnLimpiar" class="btn btn-primary" >
                     Limpiar
                 </button>
-            <!--Boton Editar-->
-                <button type="button" class="btn btn-primary" >
-                    Editar
-                </button>
-            <!--Boton Borrar-->
-                <button type="button" class="btn btn-danger" >
-                    Borrar
+            <!--Boton Actualizar-->
+                <button type="button" id="btnActualizar" class="btn btn-primary" >
+                    Actualizar
                 </button>
             </div>
+            </form>
         </div>
 
         <!--Prueba tarjetas-->
-        
-
-    <div class="card m-3" style="width: 15rem;">
-        <img src="https://picsum.photos/3" class="card-img-top" >
-        <div class="card-body">
-            <div class="m-3">
-                <h5 class="card-title">Registro</h5>
-                <div class="card-text text-center">RUT</div>
-                <div class="card-text text-center">Nombre</div>
-                <div class="card-text text-center">Apellido</div>
-                <div class="card-text text-center">Religion</div>
-            </div>
-        
-        <button type="button"  class="btn btn-danger">Borrar</button>
-        <button type="button"  class="btn btn-success">Actualizar</button>
+        <div id="contenedor-tarjetas" class="container mt-5 d-flex flex-wrap justify-content-center">"
         </div>
-    </div>
 
+   
     </main>
+    <script>
+$(document).ready(function() {
+    $('#btnActualizar').hide();
+
+       const religionMap = {
+        1: 'Cristiano',
+        2: 'Católico',
+        3: 'Agnóstico',
+        4: 'Otro'
+    };
+
+    function cargarPersonas() {
+        $.ajax({
+            url: 'http://127.0.0.1:8000/personas',
+            type: 'GET',
+            success: function(personas) {
+                const contenedor = $('#contenedor-tarjetas');
+                contenedor.empty(); 
+
+                personas.forEach(function(persona) {
+                    const religionTexto = religionMap[persona.id_religion] || 'No especificada';
+                    const tarjetaHtml = `
+                        <div class="card m-2" style="width: 18rem;">
+                            <img src="https://picsum.photos/seed/${persona.rut}/300/200" class="card-img-top" alt="Imagen de persona">
+                            <div class="card-body">
+                                <h5 class="card-title">${persona.nombre} ${persona.apellido}</h5>
+                                <p class="card-text mb-1"><strong>RUT:</strong> ${persona.rut}</p>
+                                <p class="card-text"><strong>Religión:</strong> ${religionTexto}</p>
+                                <button type="button" class="btn btn-primary btn-sm btn-editar" data-rut="${persona.rut}">Editar</button>
+                                <button type="button" class="btn btn-danger btn-sm btn-borrar" data-rut="${persona.rut}">Borrar</button>
+                            </div>
+                        </div>
+                    `;
+                    contenedor.append(tarjetaHtml);
+                });
+            },
+            error: function(error) {
+                console.error("Error al cargar personas:", error);
+                $('#contenedor-tarjetas').html('<p class="text-danger">No se pudieron cargar los registros.</p>');
+            }
+        });
+    }
+
+
+    $('#FormPersonas').on('submit', function(event) {
+        event.preventDefault();
+
+        const personaData = {
+            rut: $('#rut').val(),
+             nombre: $('#nombre').val(),
+             apellido: $('#apellido').val(),
+             id_religion: parseInt($('#religion').val(),10),
+        };
+
+        if (isNaN(personaData.id_religion)) {
+            alert("Por favor, seleccione una religión válida.");
+            return; 
+        }
+        
+        //Aqui se crea un nuevo registro en la base de datos
+        $.ajax({
+            url: 'http://127.0.0.1:8000/personas',  
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(personaData),
+            success: function(response) {
+                console.log('Respuesta del servidor:', response);
+                alert('Persona guardada con éxito: ' + response.message);
+                $('#FormPersonas')[0].reset();
+                cargarPersonas();
+            },
+            error: function(jqXHR, textStatus, errorThrown) {
+                console.error('Error al guardar:', textStatus, errorThrown, jqXHR.responseJSON);
+                
+                // MEJORA: Mostrar el error específico de FastAPI.
+                let errorMessage = 'Error al guardar la persona. Revisa la consola.';
+                if (jqXHR.status === 422 && jqXHR.responseJSON && jqXHR.responseJSON.detail) {
+                    // Error de validación de FastAPI
+                    const firstError = jqXHR.responseJSON.detail[0];
+                    errorMessage = `Error de validación: ${firstError.msg} en el campo '${firstError.loc[1]}'.`;
+                } else if (jqXHR.responseJSON && jqXHR.responseJSON.detail) {
+                    errorMessage = 'Error del servidor: ' + jqXHR.responseJSON.detail;
+                }
+                alert(errorMessage);
+            }
+        });
+    });
+
+    //actualizar registro
+    $('#btnActualizar').on('click', function() 
+    {
+
+        const rut =$('#rut').val();
+        const personaData = {
+            nombre: $('#nombre').val(),
+            apellido: $('#apellido').val(),
+            id_religion: parseInt($('#religion').val(),10),
+        };
+
+        if (!rut){
+            alert('RUT no puede estar vacío');
+            return;
+        }
+
+        $.ajax({
+            url: `http://127.0.0.1:8000/personas/${rut}`,
+            type: 'PUT',
+            contentType: 'application/json',
+            data: JSON.stringify(personaData),
+            success: function(response){
+                alert('Persona actualizada');
+                $('#FormPersonas')[0].reset();
+                cargarPersonas();
+                $('#btnActualizar').hide();
+                $('#btnGuardar').show();
+            },
+            error: function(jqXHR, textStatus, errorThrown){
+                console.error('Error al actualizar:', textStatus, errorThrown, jqXHR.responseJSON);
+                let errorMessage = 'Error al actualizar la persona. Revisa la consola.';
+             alert(errorMessage);
+            }
+            
+        });
+
+        });
+
+    $('#contenedor-tarjetas').on('click', '.btn-editar', function() 
+    {
+        const rut = $(this).data('rut');
+
+        $.ajax({
+            url: `http://127.0.0.1:8000/personas/${rut}`,
+            type: 'GET',
+            success: function(persona) {
+                $('#rut').val(persona.rut);
+                $('#nombre').val(persona.nombre);
+                $('#apellido').val(persona.apellido);
+                $('#religion').val(persona.id_religion);
+
+                $('#rut').prop('readonly', true);
+
+                $('#btnGuardar').hide();
+                $('#btnActualizar').show();
+                $('#btnLimpiar').hide();
+            },
+            error: function(error) 
+            {
+                console.error("Error al obtener datos para editar:", error);
+                alert("No se pudo cargar la información de la persona.");
+            }
+            });
+
+    
+});
+
+    $('button[type="reset"]').on('click', function() {
+        $('#rut').prop('readonly', false);
+    });
+
+    cargarPersonas(); 
+}); 
+    
+</script>
 </body>
+
+
 
 
 </html>

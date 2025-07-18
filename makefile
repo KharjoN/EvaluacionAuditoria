@@ -6,4 +6,4 @@ init:
 install:
 	poetry install --no-root
 run:
-	poetry run uvicorn src.backend.main:app --reload --host 0.0.0.0 --port 8002
+	poetry run uvicorn src.backend.main:app --reload --host 0.0.0.0 --port 8000
