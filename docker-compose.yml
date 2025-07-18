@@ -26,13 +26,13 @@ services:
       SECRET_KEY: ${SECRET_KEY}
       TOKENIZATION_KEY: ${TOKENIZATION_KEY}
     restart: unless-stopped
-  
+
   frontend:
     build:
       context: .
       dockerfile: Dockerfile.frontend
     ports:
-      - "5500:80"
+      - "8080:80"
     restart: unless-stopped
 
 volumes:

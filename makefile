@@ -8,7 +8,9 @@ install:
 run:
 	poetry run uvicorn src.backend.main:app --reload --host 0.0.0.0 --port 8000
 docker-up:
+    
 	docker-compose up --build
+
 docker-down:
 	docker-compose down
 docker-restart:
